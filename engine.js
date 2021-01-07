@@ -89,6 +89,19 @@ module.exports = function(options) {
         },
         {
           type: 'input',
+          name: 'issues',
+          message: 'JIRA Issue ID(s) (required) (i.e. `JIRA-XXX JIRA-XXY`)',
+          default: options.defaultIssues ? options.defaultIssues : undefined,
+          validate: function(input) {
+            if (!input) {
+              return 'Must specify issue IDs';
+            } else {
+              return true;
+            }
+          }
+        },
+        {
+          type: 'input',
           name: 'subject',
           message: function(answers) {
             return (
@@ -159,34 +172,6 @@ module.exports = function(options) {
             return answers.isBreaking;
           }
         },
-
-        {
-          type: 'confirm',
-          name: 'isIssueAffected',
-          message: 'Does this change affect any open issues?',
-          default: options.defaultIssues ? true : false
-        },
-        {
-          type: 'input',
-          name: 'issuesBody',
-          default: '-',
-          message:
-            'If issues are closed, the commit requires a body. Please enter a longer description of the commit itself:\n',
-          when: function(answers) {
-            return (
-              answers.isIssueAffected && !answers.body && !answers.breakingBody
-            );
-          }
-        },
-        {
-          type: 'input',
-          name: 'issues',
-          message: 'Add issue references (e.g. "fix #123", "re #123".):\n',
-          when: function(answers) {
-            return answers.isIssueAffected;
-          },
-          default: options.defaultIssues ? options.defaultIssues : undefined
-        }
       ]).then(function(answers) {
         var wrapOptions = {
           trim: true,
@@ -200,7 +185,7 @@ module.exports = function(options) {
         var scope = answers.scope ? '(' + answers.scope + ')' : '';
 
         // Hard limit this line in the validate
-        var head = answers.type + scope + ': ' + answers.subject;
+        var head = answers.type + scope + ': ' + answers.issues + ' ' + answers.subject;
 
         // Wrap these lines at options.maxLineWidth characters
         var body = answers.body ? wrap(answers.body, wrapOptions) : false;
@@ -212,9 +197,7 @@ module.exports = function(options) {
           : '';
         breaking = breaking ? wrap(breaking, wrapOptions) : false;
 
-        var issues = answers.issues ? wrap(answers.issues, wrapOptions) : false;
-
-        commit(filter([head, body, breaking, issues]).join('\n\n'));
+        commit(filter([head, body, breaking]).join('\n\n'));
       });
     }
   };
